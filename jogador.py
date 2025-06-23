@@ -10,5 +10,6 @@ class Jogador:
         self.mao.append(deck.comprar_carta())
 
     def discarte(self, carta, deck):
-        self.mao.remove(carta)
-        deck.lixo.append(carta)
+        if carta in self.mao:
+        	self.mao.remove(carta)
+        	deck.lixo.append(carta)
