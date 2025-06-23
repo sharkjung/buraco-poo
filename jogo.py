@@ -8,12 +8,12 @@ class Jogo:
         self.baralho = Deck()
         self.jogadores = [Jogador(nome, i // 2) for i, nome in enumerate(nomes_jogadores)]
         self.equipes = [Equipe(self.jogadores[:2]), Equipe(self.jogadores[2:])]
-        self.current_player_index = 0
+        self.vez_do_jogador = 0
         self.baralho.distribuir_cartas(self.jogadores)
         self.acabou = False
 
     def jogar_mao(self):
-        jogador = self.jogadores[self.current_player_index]
+        jogador = self.jogadores[self.vez_do_jogador]
         print(f"\n>> Vez de {jogador.nome}")
 
         Interface.exibir_mao(jogador)
