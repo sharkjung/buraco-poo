@@ -16,11 +16,11 @@ class Equipe:
     def eh_canastra_limpa(self, cartas):
         if len(cartas) != 7 or any(carta.is_wildcard() for carta in cartas):
             return False
-        suits = {carta.suit for carta in cartas}
+        suits = {carta.naipe for carta in cartas}
         return len(suits) == 1
 
     def eh_canastra_suja(self, cartas):
-        return len(cartas) == 7 and any(carta.is_wildcard() for carta in cartas)
+        return len(cartas) == 7 and any(carta.eh_coringa() for carta in cartas)
 
     def contar_pontos_na_mesa(self):
         total = 0
