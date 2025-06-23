@@ -41,7 +41,7 @@ class Jogo:
 
         Interface.exibir_estado_do_jogo(self)
         Interface.pausar()
-        self.current_player_index = (self.current_player_index + 1) % 4
+        self.vez_do_jogador = (self.vez_do_jogador + 1) % 4
 
     def finalizar_jogo(self):
         print("\nFIM DA RODADA")
