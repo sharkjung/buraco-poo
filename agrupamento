@@ -1,0 +1,164 @@
+import pygame
+from typing import List, Tuple
+from constants import CARD_WIDTH, CARD_HEIGHT, WHITE, BLACK, GREEN
+from carta import Carta
+
+class Agrupamento:
+    """Classe que representa um agrupamento de cartas (trinca ou sequência)"""
+    def __init__(self, cartas: List[Carta] = None):
+        self.cartas = cartas if cartas else []
+        self.rect = pygame.Rect(0, 0, CARD_WIDTH * 3, CARD_HEIGHT)
+        self.posicao = (0, 0)
+        self.selecionado = False
+        
+    def __str__(self) -> str:
+        return f"Agrupamento: {self.cartas}"
+    
+    def adicionar_carta(self, carta: Carta) -> bool:
+        """Tenta adicionar uma carta ao agrupamento, retorna True se bem-sucedido"""
+        if carta in self.cartas:
+            return False
+            
+        # Verifica se a carta pode ser adicionada
+        if self.eh_trinca() and carta.pode_adicionar_trinca(self):
+            self.cartas.append(carta)
+            return True
+        elif self.eh_sequencia() and carta.pode_adicionar_sequencia(self):
+            self.cartas.append(carta)
+            # Mantém a sequência ordenada
+            self.ordenar_sequencia()
+            return True
+        return False
+    
+    def ordenar_sequencia(self) -> None:
+        """Ordena as cartas da sequência mantendo curingas e '2's no lugar"""
+        if not self.eh_sequencia():
+            return
+            
+        # Separa cartas normais de curingas/'2's
+        normais = [c for c in self.cartas if not c.curinga and c.valor != '2']
+        especiais = [c for c in self.cartas if c.curinga or c.valor == '2']
+        
+        # Ordena as cartas normais
+        normais_ordenadas = sorted(
+            normais,
+            key=lambda c: Carta.VALORES.index(c.valor)
+        )
+        
+        # Reconstroi a sequência intercalando cartas normais e especiais
+        nova_sequencia = []
+        idx_especiais = 0
+        
+        for carta in normais_ordenadas:
+            # Adiciona especiais que estão antes desta carta
+            while idx_especiais < len(especiais):
+                especial = especiais[idx_especiais]
+                pos_especial = self.cartas.index(especial)
+                pos_normal = self.cartas.index(carta)
+                if pos_especial < pos_normal:
+                    nova_sequencia.append(especial)
+                    idx_especiais += 1
+                else:
+                    break
+            nova_sequencia.append(carta)
+        
+        # Adiciona quaisquer especiais restantes
+        nova_sequencia.extend(especiais[idx_especiais:])
+        
+        self.cartas = nova_sequencia
+    
+    def validar(self) -> bool:
+        """Valida se o agrupamento é válido (trinca ou sequência)"""
+        if len(self.cartas) < 3:
+            return False
+        
+        # Verifica se é trinca
+        if self.eh_trinca():
+            return True
+        
+        # Verifica se é sequência
+        if self.eh_sequencia():
+            return True
+        
+        return False
+    
+    def eh_trinca(self) -> bool:
+        """Verifica se o agrupamento é uma trinca"""
+        # Conta quantas cartas não são curingas ou '2's
+        valores = [c.valor for c in self.cartas if not c.curinga and c.valor != '2']
+        
+        # Se todas são curingas, não é trinca válida
+        if not valores:
+            return False
+        
+        # Todas as cartas não curingas devem ter o mesmo valor
+        primeiro_valor = valores[0]
+        return all(v == primeiro_valor for v in valores)
+    
+    def eh_sequencia(self) -> bool:
+        """Verifica se o agrupamento é uma sequência"""
+        # Remove curingas e '2's para verificar
+        cartas_nao_curingas = [c for c in self.cartas if not c.curinga and c.valor != '2']
+        
+        # Se não há cartas não curingas, não é sequência válida
+        if not cartas_nao_curingas:
+            return False
+        
+        # Verifica se todas as cartas não curingas têm o mesmo naipe
+        primeiro_naipe = cartas_nao_curingas[0].naipe
+        if any(c.naipe != primeiro_naipe for c in cartas_nao_curingas):
+            return False
+        
+        # Ordena as cartas não curingas
+        valores_ordenados = sorted(
+            cartas_nao_curingas,
+            key=lambda c: Carta.VALORES.index(c.valor)
+        )
+        
+        # Verifica se formam uma sequência consecutiva
+        for i in range(1, len(valores_ordenados)):
+            idx_atual = Carta.VALORES.index(valores_ordenados[i].valor)
+            idx_anterior = Carta.VALORES.index(valores_ordenados[i-1].valor)
+            if idx_atual != idx_anterior + 1:
+                return False
+        
+        return True
+    
+    def eh_canastra(self) -> bool:
+        """Verifica se o agrupamento é uma canastra"""
+        return len(self.cartas) >= 7 and self.validar()
+    
+    def get_pontos(self) -> int:
+        """Calcula os pontos do agrupamento"""
+        if not self.validar():
+            return 0
+        
+        pontos = sum(c.get_pontos() for c in self.cartas)
+        
+        if self.eh_canastra():
+            tem_curinga = any(c.curinga or c.valor == '2' for c in self.cartas)
+            pontos += 100 if tem_curinga else 200
+        
+        return pontos
+    
+    def desenhar(self, x: int, y: int) -> None:
+        """Desenha o agrupamento na tela"""
+        self.posicao = (x, y)
+        largura = CARD_WIDTH * min(7, len(self.cartas))
+        self.rect = pygame.Rect(x, y, largura, CARD_HEIGHT)
+        
+        # Muda a cor de fundo se estiver selecionado
+        cor_fundo = GREEN if self.selecionado else WHITE
+        pygame.draw.rect(screen, cor_fundo, self.rect)
+        pygame.draw.rect(screen, BLACK, self.rect, 2)
+        
+        for i, carta in enumerate(self.cartas[:7]):  # Limita a mostrar 7 cartas
+            carta.desenhar(x + i * (CARD_WIDTH - 20), y)
+        
+        if len(self.cartas) > 7:
+            texto = small_font.render(f"+{len(self.cartas)-7}", True, BLACK)
+            screen.blit(texto, (x + 7 * (CARD_WIDTH - 20) + 10, y + CARD_HEIGHT // 2 - 10))
+    
+    def selecionar(self, pos: Tuple[int, int]) -> bool:
+        """Verifica se o agrupamento foi clicado"""
+        return self.rect.collidepoint(pos)
